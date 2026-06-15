@@ -1,0 +1,12 @@
+train: train/images
+val: valid/images
+
+nc: 7
+names: ['barcoderotation', 'damaged_labelrotation', 'expiry_daterotation', 'labelrotation', 'mfg_daterotation', 'qr_coderotation', 'quantityrotation']
+
+roboflow:
+  workspace: pabithas-workspace
+  project: datasets-4yhdt
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/pabithas-workspace/datasets-4yhdt/dataset/1

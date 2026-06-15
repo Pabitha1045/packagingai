@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Packaging Verification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Computer vision</p>
+        <h1>AI Packaging Verification</h1>
+        <p class="lead">Upload a package label image and inspect barcode, QR code, dates, quantity, damage, and label presence in one clean pass.</p>
+      </div>
+
+      <form class="upload-card" id="uploadForm" method="POST" enctype="multipart/form-data">
+        <div class="drop-zone" id="dropZone">
+          <input id="imageInput" type="file" name="image" accept="image/*" required>
+          <div class="drop-content" id="dropContent">
+            <div class="drop-icon">SCAN</div>
+            <h2>Drop package image here</h2>
+            <p>or click to browse from your computer</p>
+            <span id="fileName">JPG, PNG, WEBP, BMP up to 12MB</span>
+          </div>
+          <div class="upload-preview" id="uploadPreview" hidden>
+            <span>Selected Image</span>
+            <img id="previewImage" alt="Selected package preview">
+          </div>
+        </div>
+        <button id="submitButton" type="submit">Run Inspection</button>
+      </form>
+    </section>
+
+    <section class="report-action">
+      <div>
+        <p class="eyebrow">Quality report</p>
+        <h2>Review inspection trends and corrective actions</h2>
+      </div>
+      <form action="{{ url_for('generate_report') }}" method="POST" id="reportForm">
+        <button id="reportButton" type="submit">Generate Report</button>
+      </form>
+    </section>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <section class="messages">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    {% if report %}
+      <section class="report-panel reveal" id="report">
+        <div class="panel-title">
+          <div>
+            <p class="eyebrow">Quality report</p>
+            <h2>Inspection Summary</h2>
+          </div>
+          <span>{{ report.record_count }} inspections &middot; {{ report.generated_at }}</span>
+        </div>
+
+        <div class="report-overview">
+          <span class="report-count">{{ report.record_count }}</span>
+          <div>
+            <strong>Samples analyzed</strong>
+            <p>{{ report.overview }}</p>
+          </div>
+        </div>
+
+        {% if report.issues %}
+          <section class="report-section">
+            <h3>Issue Breakdown</h3>
+            <div class="issue-table">
+              <div class="issue-row issue-head">
+                <span>Issue</span><span>Count</span><span>Risk</span><span>Impact</span>
+              </div>
+              {% for issue in report.issues %}
+                <div class="issue-row">
+                  <strong>{{ issue.name }}</strong>
+                  <span>{{ issue.count }}</span>
+                  <span class="risk-badge {{ issue.severity|lower }}">{{ issue.severity }}</span>
+                  <span>{{ issue.risk }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+
+        <div class="report-columns">
+          <section class="report-section">
+            <h3>Recommended Fixes</h3>
+            <div class="recommendations">
+              {% for fix in report.recommended_fixes %}
+                <article>
+                  <span>{{ "%02d"|format(loop.index) }}</span>
+                  <div>
+                    <h4>{{ fix.title }}</h4>
+                    <ul>
+                      {% for detail in fix.details %}<li>{{ detail }}</li>{% endfor %}
+                    </ul>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="report-section">
+            <h3>Next Steps</h3>
+            <ol class="action-list">
+              {% for step in report.next_steps %}<li>{{ step }}</li>{% endfor %}
+            </ol>
+
+            <h3 class="subheading">Action Items</h3>
+            <ul class="action-list checks-list">
+              {% for item in report.action_items %}<li>{{ item }}</li>{% endfor %}
+            </ul>
+          </section>
+        </div>
+
+        {% if report.timeline %}
+          <section class="report-section">
+            <h3>Implementation Timeline</h3>
+            <div class="timeline">
+              {% for item in report.timeline %}
+                <div><strong>{{ item.task }}</strong><span>{{ item.duration }}</span></div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+
+        <section class="report-conclusion">
+          <h3>Conclusion</h3>
+          <p>{{ report.conclusion }}</p>
+        </section>
+      </section>
+    {% endif %}
+
+    {% if result %}
+      <section class="result-grid reveal" id="results">
+        <article class="verdict-card {{ result.severity }}">
+          <p class="eyebrow">Final decision</p>
+          <h2>{{ result.status }}</h2>
+          <div class="metric-row">
+            <div>
+              <span>{{ result.detected_count }}</span>
+              <small>detections</small>
+            </div>
+            <div>
+              <span>{{ result.mfg_text }}</span>
+              <small>MFG date</small>
+            </div>
+            <div>
+              <span>{{ result.expiry_text }}</span>
+              <small>Expiry date</small>
+            </div>
+          </div>
+        </article>
+
+        <article class="image-panel compare-panel">
+          <div class="panel-title">
+            <h2>Image Scan</h2>
+            <a href="{{ result.result_url }}" download>Download</a>
+          </div>
+          <div class="scan-compare">
+            <div>
+              <span>Uploaded Image</span>
+              <img src="{{ result.uploaded_url }}" alt="Uploaded package image">
+            </div>
+            <div>
+              <span>AI Scan Result</span>
+              <img src="{{ result.result_url }}" alt="Annotated inspection output">
+            </div>
+          </div>
+        </article>
+
+        <article class="checks-panel">
+          <h2>Inspection Checklist</h2>
+          <div class="checks">
+            <div class="check {% if result.checks.label %}ok{% else %}missing{% endif %}">
+              <span>Label</span><strong>{{ "Found" if result.checks.label else "Missing" }}</strong>
+            </div>
+            <div class="check {% if result.checks.barcode %}ok{% else %}missing{% endif %}">
+              <span>Barcode</span><strong>{{ "Found" if result.checks.barcode else "Missing" }}</strong>
+            </div>
+            <div class="check {% if result.checks.qr_code %}ok{% else %}missing{% endif %}">
+              <span>QR Code</span><strong>{{ "Found" if result.checks.qr_code else "Missing" }}</strong>
+            </div>
+            <div class="check {% if result.checks.quantity %}ok{% else %}missing{% endif %}">
+              <span>Quantity</span><strong>{{ "Found" if result.checks.quantity else "Missing" }}</strong>
+            </div>
+            <div class="check {% if result.checks.mfg_date %}ok{% else %}missing{% endif %}">
+              <span>MFG Date</span><strong>{{ "Found" if result.checks.mfg_date else "Missing" }}</strong>
+            </div>
+            <div class="check {% if result.checks.expiry_date %}ok{% else %}missing{% endif %}">
+              <span>Expiry Date</span><strong>{{ "Found" if result.checks.expiry_date else "Missing" }}</strong>
+            </div>
+            <div class="check {% if result.checks.damaged %}bad{% else %}ok{% endif %}">
+              <span>Damage</span><strong>{{ "Detected" if result.checks.damaged else "Clear" }}</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="detections-panel">
+          <h2>Detected Objects</h2>
+          {% if result.detections %}
+            <div class="detections">
+              {% for detection in result.detections %}
+                <div>
+                  <span>{{ detection.label }}</span>
+                  <strong>{{ detection.confidence }}%</strong>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="empty">No model detections were returned for this image.</p>
+          {% endif %}
+        </article>
+      </section>
+    {% elif not report %}
+      <section class="empty-state">
+        <div>
+          <span>01</span>
+          <h2>Upload</h2>
+          <p>Select a label or package image.</p>
+        </div>
+        <div>
+          <span>02</span>
+          <h2>Inspect</h2>
+          <p>YOLO finds package elements and OCR reads dates.</p>
+        </div>
+        <div>
+          <span>03</span>
+          <h2>Decide</h2>
+          <p>The dashboard returns a clear pass, warning, or fail state.</p>
+        </div>
+      </section>
+    {% endif %}
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+flask
+ultralytics
+easyocr
+httpx
+opencv-python
+werkzeug
+supabase
+python-dotenv
+numpy>=1.26,<2
+
