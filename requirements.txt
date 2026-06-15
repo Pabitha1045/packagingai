@@ -1,8 +1,9 @@
 flask
+gunicorn
 ultralytics
 easyocr
 httpx
-opencv-python
+opencv-python-headless
 werkzeug
 supabase
 python-dotenv

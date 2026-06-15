@@ -26,3 +26,27 @@ for structured quality reports.
 
 The trained model is stored at `models/best.pt`. Uploaded and annotated images
 are generated at runtime under `static/uploads` and `static/results`.
+
+## Deploy On Render
+
+Push this repository to GitHub, then create a new Render Web Service from the
+repository.
+
+Use these settings if Render does not auto-detect `render.yaml`:
+
+- Runtime: `Python 3`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn --bind 0.0.0.0:$PORT --timeout 180 --workers 1 app:app`
+
+Add these environment variables in Render:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `GROQ_API_KEY`
+- `GROQ_MODEL`, optional: `llama-3.1-8b-instant`
+- `FLASK_SECRET_KEY`
+- `FLASK_DEBUG`: `0`
+
+Uploaded and annotated images are stored on the Render instance filesystem, so
+they may reset when the service restarts. Inspection records are still saved in
+the configured database.
